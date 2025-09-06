@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { User, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { User, ArrowLeft, Eye, EyeOff, FileText } from "lucide-react";
 
 interface ArtistSignupProps {
   onBack: () => void;
@@ -10,6 +10,7 @@ const ArtistSignup: React.FC<ArtistSignupProps> = ({ onBack, onSuccess }) => {
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -26,15 +27,37 @@ const ArtistSignup: React.FC<ArtistSignupProps> = ({ onBack, onSuccess }) => {
     password: "",
     confirmPassword: "",
   });
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  // Clean up object URL to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (photoPreview) {
+        URL.revokeObjectURL(photoPreview);
+      }
+    };
+  }, [photoPreview]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, files } = e.target as HTMLInputElement;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: files ? files[0] : value,
-    }));
+    
+    if (name === 'photo' && files && files[0]) {
+      const file = files[0];
+      setFormData(prev => ({
+        ...prev,
+        [name]: file,
+      }));
+      // Create preview URL for the selected image
+      const imageUrl = URL.createObjectURL(file);
+      setPhotoPreview(imageUrl);
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: files ? files[0] : value,
+      }));
+    }
   };
 
   const roleColors = "from-yellow-600 to-yellow-500"; // Artist theme
@@ -103,19 +126,42 @@ const ArtistSignup: React.FC<ArtistSignupProps> = ({ onBack, onSuccess }) => {
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all"
                 />
-                <div className="pt-2">
+                <div className="mt-4">
                   <label className="block text-sm text-gray-700 mb-2">
                     Profile Photo
                   </label>
-                  <input
-                    type="file"
-                    name="photo"
-                    accept="image/*"
-                    onChange={handleInputChange}
-                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 
-                      file:rounded-full file:border-0 file:text-sm file:font-semibold 
-                      file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100"
-                  />
+                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center">
+                    {photoPreview ? (
+                      <div className="mb-2">
+                        <img 
+                          src={photoPreview} 
+                          alt="Profile Preview" 
+                          className="h-48 w-full object-contain mx-auto"
+                        />
+                      </div>
+                    ) : (
+                      <div className="py-4">
+                        <User className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">
+                          Upload your profile photo (JPG, PNG)
+                        </p>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      name="photo"
+                      accept="image/*"
+                      onChange={handleInputChange}
+                      className="hidden"
+                      id="profilePhotoInput"
+                    />
+                    <label
+                      htmlFor="profilePhotoInput"
+                      className="inline-block mt-2 px-4 py-2 bg-yellow-50 text-yellow-700 rounded-full text-sm font-medium hover:bg-yellow-100 cursor-pointer transition-colors"
+                    >
+                      {photoPreview ? 'Change Photo' : 'Choose Photo'}
+                    </label>
+                  </div>
                 </div>
               </div>
             )}
@@ -143,19 +189,42 @@ const ArtistSignup: React.FC<ArtistSignupProps> = ({ onBack, onSuccess }) => {
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all"
                 />
-                <div className="pt-2">
+                <div className="mt-4">
                   <label className="block text-sm text-gray-700 mb-2">
                     Upload Proof Document
                   </label>
-                  <input
-                    type="file"
-                    name="proofFile"
-                    accept="image/*,.pdf"
-                    onChange={handleInputChange}
-                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 
-                      file:rounded-full file:border-0 file:text-sm file:font-semibold 
-                      file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100"
-                  />
+                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center">
+                    {proofPreview ? (
+                      <div className="mb-2">
+                        <img 
+                          src={proofPreview} 
+                          alt="Document Preview" 
+                          className="max-h-48 mx-auto object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="py-4">
+                        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">
+                          Upload your document (JPG, PNG, or PDF)
+                        </p>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      name="proofFile"
+                      accept="image/*,.pdf"
+                      onChange={handleInputChange}
+                      className="hidden"
+                      id="proofFileInput"
+                    />
+                    <label
+                      htmlFor="proofFileInput"
+                      className="inline-block mt-2 px-4 py-2 bg-yellow-50 text-yellow-700 rounded-full text-sm font-medium hover:bg-yellow-100 cursor-pointer transition-colors"
+                    >
+                      {proofPreview ? 'Change Document' : 'Choose File'}
+                    </label>
+                  </div>
                 </div>
               </div>
             )}
